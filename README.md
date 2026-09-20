@@ -4,7 +4,7 @@ Draw in the air with your hand. No mouse, no stylus, no touch screen: just a web
 
 AI Air Drawing is a touchless digital whiteboard. It tracks 21 points on your hand in real time, understands your finger gestures, and turns your index fingertip into a pen on an HTML5 canvas. You can sign in and save your drawings to your own cloud gallery.
 
-**Live demo:** https://github.com/Maurya8920/AI-AIR-DRAWING/edit/main/README.md
+**Live demo:** https://ai-air-drawing-eight.vercel.app
 
 ---
 
