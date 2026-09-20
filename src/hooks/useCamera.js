@@ -29,11 +29,12 @@ export function useCamera() {
       stopCamera();
 
       try {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         const constraints = {
           video: {
             facingMode: { ideal: facing },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: isMobile ? 640 : 1280 },
+            height: { ideal: isMobile ? 480 : 720 },
           },
           audio: false,
         };

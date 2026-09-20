@@ -69,7 +69,8 @@ html, body {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
-  width: 100vw;
+  width: 100%;
+  max-width: 100vw;
   background-color: var(--forest-deep);
   background-image:
     linear-gradient(180deg, rgba(11, 42, 58, 0.72) 0%, rgba(7, 29, 40, 0.88) 100%),
@@ -81,7 +82,11 @@ html, body {
   background-repeat: no-repeat;
   display: flex;
   padding: clamp(8px, 1.8vw, 24px);
-  overflow: hidden;
+  padding-top: max(clamp(8px, 1.8vw, 24px), env(safe-area-inset-top, 0px));
+  padding-bottom: max(clamp(8px, 1.8vw, 24px), env(safe-area-inset-bottom, 0px));
+  padding-left: max(clamp(8px, 1.8vw, 24px), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(8px, 1.8vw, 24px), env(safe-area-inset-right, 0px));
+  overflow-x: hidden;
 }
 
 /* Large Outer Rounded Frame (32px radius, 1px border white 25%) */
@@ -535,7 +540,7 @@ html, body {
 /* Central Canvas Area (Webcam + Overlay + Drawing) */
 .canvas-area {
   position: relative;
-  flex: 1;
+  width: 100%;
   max-width: 960px;
   aspect-ratio: 16 / 9;
   border-radius: 24px;
@@ -1701,42 +1706,744 @@ html, body {
   transform: translateY(-1px);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN SYSTEM (Mobile, Tablet, Desktop)
+   Breakpoints:
+   - Mobile: < 768px (tested at 360px, 390px)
+   - Tablet: 768px - 1023px
+   - Desktop: 1024px, 1280px, 1440px, 1920px+
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Studio Stage container (used on all screen sizes) */
+.studio-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   DESKTOP & LARGE SCREENS (1024px and up)
+   ───────────────────────────────────────────────────────────────────────── */
+@media (min-width: 768px) {
+  .studio-stage > .camera-toolbar {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    width: calc(100% - 24px);
+    max-width: 930px;
+    margin: 0;
+    padding: 8px 14px;
+    gap: 8px 10px;
+    background: rgba(10, 25, 35, 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    flex-direction: row;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar-row-divider.desktop-only-divider {
+    display: block;
+    width: 1px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .mobile-stand-tip,
+  .studio-mobile-collapsibles {
+    display: none !important;
+  }
+}
+
+/* Fits in 1366x768 and 1280x720 without toolbar covering too much camera */
+@media (min-width: 1024px) {
+  .canvas-area {
+    max-height: calc(100dvh - 200px);
+  }
+}
+
+/* Under 1200px: side panels move below camera or collapse */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .app-main {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  aside.desktop-side-panel {
+    display: none;
+  }
+}
+
+/* 1200px+: side panels flank the central camera */
+@media (min-width: 1200px) {
+  .app-main {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  aside.desktop-side-panel {
+    display: block;
+    width: 220px;
+    flex-shrink: 0;
+  }
+}
+
+/* Very wide screens (1920px+): limit content to max-width 1440px centered */
+@media (min-width: 1920px) {
+  .outer-frame {
+    max-width: 1680px;
+    margin: 0 auto;
+  }
+
+  .landing-layout {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  .navbar-inner {
+    max-width: 1440px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TABLET (768px - 1023px)
+   ───────────────────────────────────────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .landing-layout {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 32px;
+    gap: 32px;
+    min-height: auto;
+  }
+
+  .hero-left {
+    max-width: 640px;
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  .hero-features {
+    justify-content: center;
+  }
+
+  .hero-right {
+    max-width: 520px;
+    width: 100%;
+  }
+
+  .drawings-grid,
+  .drawings-grid-full {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOBILE (under 768px)
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Frame margin 8px, inner padding 20px, safe area insets */
+  .forest-viewport {
+    padding: 8px;
+    padding-top: max(8px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
+    overflow-x: hidden;
+  }
+
   .outer-frame {
     border-radius: 20px;
-    margin: 4px;
+    margin: 0;
+    min-height: calc(100dvh - 16px);
+    overflow-x: hidden;
+  }
+
+  /* 1. Mobile Nav Menu */
+  .navbar {
+    padding: 14px 16px;
+    position: relative;
   }
 
   .navbar-hamburger {
     display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    z-index: 1001;
   }
 
+  .hamburger-line {
+    width: 22px;
+    height: 2px;
+    background-color: #FFFFFF;
+    border-radius: 2px;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
+    transform-origin: center;
+  }
+
+  /* Hamburger morphs into an X when open */
+  .navbar-hamburger.open .hamburger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .navbar-hamburger.open .hamburger-line:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .navbar-hamburger.open .hamburger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* Glass dropdown floating OVER the page */
   .navbar-links {
-    display: none;
+    display: flex;
     position: absolute;
-    top: 70px;
-    left: 16px;
-    right: 16px;
+    top: calc(100% + 8px);
+    left: 12px;
+    right: 12px;
+    z-index: 1000;
     flex-direction: column;
-    background: rgba(10, 25, 35, 0.96);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    padding: 24px;
-    gap: 16px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    background: rgba(10, 25, 35, 0.94);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 22px;
+    padding: 22px 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
+    transform: translateY(-8px);
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .navbar-links.open {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* All items in one vertical column, centered, min 44px tap target */
+  .navbar-links .nav-link {
+    min-height: 44px;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    color: var(--text-dim);
+  }
+
+  .nav-auth-section,
+  .nav-user-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  /* Sign In: glass button, Start Drawing: white pill */
+  .nav-auth-section .nav-signin-btn {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius-pill);
+    font-size: 15px;
+    font-weight: 500;
+    color: #FFFFFF;
+  }
+
+  .nav-auth-section .nav-start-btn {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  /* Logged-in: centered name and full-width logout */
+  .nav-user-section .nav-username {
+    width: 100%;
+    text-align: center;
+    font-size: 15px;
+    color: var(--forest-mist);
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-user-section .nav-logout-btn {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  /* 2. Landing Page on Mobile */
+  .landing-layout {
+    flex-direction: column;
+    padding: 20px;
+    gap: 24px;
+    min-height: auto;
+    align-items: stretch;
+  }
+
+  .hero-left {
+    max-width: 100%;
+    margin-bottom: 0;
   }
 
   .hero-headline {
-    font-size: 2.8rem;
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    line-height: 1;
+    margin-bottom: 16px;
   }
 
-  .toolbar.glass-toolbar {
+  .hero-subtitle {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    max-width: 100%;
+  }
+
+  .hero-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .feature-chip {
+    font-size: 12px;
+    padding: 6px 12px;
+    white-space: nowrap;
+  }
+
+  .hero-right {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .booking-style-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px;
+    gap: 18px;
+  }
+
+  .gesture-guide-preview {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .card-cta-group {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .card-cta-group .btn-pill-primary,
+  .card-cta-group .btn-glass-secondary {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* 3. Studio Page on Mobile */
+  .app {
+    padding: 0 10px 16px;
+    width: 100%;
+  }
+
+  .draw-header {
+    padding: 4px 0 8px;
+  }
+
+  .draw-header-row {
+    justify-content: center;
+  }
+
+  .app-title {
+    font-size: 1.15rem;
+    line-height: 1.2;
+  }
+
+  .app-subtitle {
+    display: none;
+  }
+
+  .draw-header .debug-toggle-btn {
+    display: none;
+  }
+
+  .app-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+
+  aside.desktop-side-panel {
+    display: none;
+  }
+
+  .studio-stage {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .canvas-area {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 18px;
+  }
+
+  .desktop-debug-hud {
+    display: none !important;
+  }
+
+  /* Mobile stand tip */
+  .mobile-stand-tip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(10, 25, 35, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 138, 31, 0.35);
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    width: 100%;
+    font-size: 12px;
+    color: #FFFFFF;
+  }
+
+  .mobile-stand-tip .tip-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .mobile-stand-tip .tip-text {
+    flex: 1;
+    line-height: 1.35;
+  }
+
+  .mobile-stand-tip .tip-close-btn {
+    background: none;
+    border: none;
+    color: var(--forest-mist);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px;
+    min-height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Mobile Toolbar BELOW camera */
+  .studio-stage > .camera-toolbar {
+    position: static;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 10px;
     border-radius: 20px;
-    padding: 10px;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 20;
+  }
+
+  .toolbar-row {
+    width: 100%;
+  }
+
+  .toolbar-row-1 {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding: 2px 2px 6px;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .toolbar-row-1::-webkit-scrollbar {
+    display: none;
+  }
+
+  .toolbar-row-2 {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding: 2px;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    scrollbar-width: none;
+  }
+
+  .toolbar-row-2::-webkit-scrollbar {
+    display: none;
+  }
+
+  .toolbar-row-divider.desktop-only-divider {
+    display: none;
+  }
+
+  .camera-toolbar .tool-btn,
+  .camera-toolbar .size-btn,
+  .camera-toolbar .color-swatch,
+  .camera-toolbar .color-custom {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .tool-btn-progress-ring {
+    width: 48px;
+    height: 48px;
+    inset: -2px;
+  }
+
+  .toolbar-divider {
+    height: 24px;
+    flex-shrink: 0;
+  }
+
+  /* Mobile collapsible sections below toolbar */
+  .studio-mobile-collapsibles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .studio-collapse-item {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .studio-collapse-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--forest-mist);
+    cursor: pointer;
+    user-select: none;
+    min-height: 44px;
+    list-style: none;
+  }
+
+  .studio-collapse-header::-webkit-details-marker {
+    display: none;
+  }
+
+  .collapse-arrow {
+    transition: transform 200ms ease;
+  }
+
+  .studio-collapse-item[open] .collapse-arrow {
+    transform: rotate(180deg);
+  }
+
+  .studio-collapse-content {
+    padding: 0 14px 14px;
+  }
+
+  .mobile-debug-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  /* 4. Login & Register on Mobile */
+  .auth-page {
+    padding: 20px 16px;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 24px 18px;
+  }
+
+  /* Inputs font-size 16px prevents iOS Safari from auto-zooming */
+  .form-group input {
+    font-size: 16px !important;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .auth-submit {
+    min-height: 44px;
+    width: 100%;
+    font-size: 15px;
+  }
+
+  /* 5. Gallery & Dashboard on Mobile */
+  .drawings-grid,
+  .drawings-grid-full,
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .my-drawings-page,
+  .dashboard-page,
+  .drawing-details-page {
+    padding: 16px;
+  }
+
+  .my-drawings-header,
+  .dashboard-welcome {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .search-bar {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .dashboard-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .dashboard-actions .action-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* Drawing Details on Mobile */
+  .drawing-details-container {
+    padding: 0;
+  }
+
+  .details-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .details-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .details-actions .action-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .details-image {
+    max-width: 100%;
+    max-height: 55vh;
+    object-fit: contain;
+  }
+
+  /* 6. Toast above bottom toolbar on Mobile */
+  .toast {
+    bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    right: 16px;
+    justify-content: center;
+    max-width: calc(100% - 32px);
+    margin: 0 auto;
   }
 }
+

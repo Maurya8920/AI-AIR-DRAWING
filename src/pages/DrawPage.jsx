@@ -38,7 +38,25 @@ export default function DrawPage() {
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState('#FF8A1F');
   const [brushSize, setBrushSize] = useState(5);
-  const [canvasSize, setCanvasSize] = useState({ width: 1280, height: 720 });
+  const [canvasSize, setCanvasSize] = useState({ width: 640, height: 480 });
+  const [aspectRatio, setAspectRatio] = useState('4 / 3');
+  const [showMobileTip, setShowMobileTip] = useState(() => {
+    return (
+      typeof window !== 'undefined' &&
+      window.innerWidth < 768 &&
+      !localStorage.getItem('air_drawing_mobile_tip_dismissed')
+    );
+  });
+
+  const dismissMobileTip = () => {
+    setShowMobileTip(false);
+    try {
+      localStorage.setItem('air_drawing_mobile_tip_dismissed', 'true');
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
   const [toast, setToast] = useState(null);
   const [saving, setSaving] = useState(false);
   const [clearProgress, setClearProgress] = useState(0); // 0 to 100%
@@ -636,7 +654,13 @@ export default function DrawPage() {
   }, [appState, videoRef, setOnResults, handleTrackingResults, startTracking]);
 
   const handleCanvasResize = useCallback((w, h) => {
-    setCanvasSize({ width: w, height: h });
+    if (w && h) {
+      setCanvasSize((prev) => {
+        if (prev.width === w && prev.height === h) return prev;
+        return { width: w, height: h };
+      });
+      setAspectRatio(`${w} / ${h}`);
+    }
   }, []);
 
   // Prevent scrolling on touch devices while drawing
@@ -692,8 +716,8 @@ export default function DrawPage() {
 
       {/* Main area */}
       <main className="app-main">
-        {/* Side panel — left (desktop) */}
-        <aside className="side-panel left-panel">
+        {/* Side panel — left (desktop >= 1200px) */}
+        <aside className="side-panel left-panel desktop-side-panel">
           <StatusPanel
             cameraStatus={cameraStatus}
             handDetected={handDetected}
@@ -706,145 +730,165 @@ export default function DrawPage() {
           />
         </aside>
 
-        {/* Center — camera + canvas + floating toolbar */}
-        <div className="canvas-area" ref={canvasAreaRef}>
-          {/* Loading overlay */}
-          {(isModelLoading || cameraStatus === 'loading') && (
-            <div className="loading-overlay">
-              <div className="loading-spinner" />
-              <p>{isModelLoading ? 'Loading AI Vision model...' : 'Starting camera...'}</p>
-            </div>
-          )}
-
-          {/* Error overlay */}
-          {(cameraError || trackingError) && (
-            <div className="error-overlay">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-              <p>{cameraError || trackingError}</p>
-              <button className="retry-btn" onClick={() => startCamera()}>
-                Retry
+        {/* Center stage — camera + toolbar + mobile collapsible trays */}
+        <div className="studio-stage">
+          {showMobileTip && (
+            <div className="mobile-stand-tip">
+              <span className="tip-icon">📱</span>
+              <span className="tip-text">
+                Place your phone on a stand and step back so your whole hand is visible.
+              </span>
+              <button
+                className="tip-close-btn"
+                onClick={dismissMobileTip}
+                aria-label="Dismiss tip"
+              >
+                ✕
               </button>
             </div>
           )}
 
-          {/* ✋ Circular Hold-to-Clear Indicator */}
-          {clearProgress > 0 && (
-            <div className="clear-progress-overlay">
-              <div className="clear-progress-card">
-                <svg className="clear-progress-ring" width="110" height="110" viewBox="0 0 110 110">
-                  <circle
-                    cx="55"
-                    cy="55"
-                    r="46"
-                    className="clear-progress-bg"
-                    strokeWidth="6"
-                    fill="none"
-                  />
-                  <circle
-                    cx="55"
-                    cy="55"
-                    r="46"
-                    className="clear-progress-fill"
-                    strokeWidth="6"
-                    fill="none"
-                    strokeDasharray={2 * Math.PI * 46}
-                    strokeDashoffset={2 * Math.PI * 46 * (1 - clearProgress / 100)}
-                    strokeLinecap="round"
-                  />
+          <div className="canvas-area" ref={canvasAreaRef} style={{ aspectRatio }}>
+            {/* Loading overlay */}
+            {(isModelLoading || cameraStatus === 'loading') && (
+              <div className="loading-overlay">
+                <div className="loading-spinner" />
+                <p>{isModelLoading ? 'Loading AI Vision model...' : 'Starting camera...'}</p>
+              </div>
+            )}
+
+            {/* Error overlay */}
+            {(cameraError || trackingError) && (
+              <div className="error-overlay">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
                 </svg>
-                <div className="clear-progress-center">
-                  <span className="clear-progress-icon">✋</span>
-                  <span className="clear-progress-percent">{clearProgress}%</span>
-                  <span className="clear-progress-label">Hold 1s to Clear</span>
+                <p>{cameraError || trackingError}</p>
+                <button className="retry-btn" onClick={() => startCamera()}>
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* ✋ Circular Hold-to-Clear Indicator */}
+            {clearProgress > 0 && (
+              <div className="clear-progress-overlay">
+                <div className="clear-progress-card">
+                  <svg className="clear-progress-ring" width="110" height="110" viewBox="0 0 110 110">
+                    <circle
+                      cx="55"
+                      cy="55"
+                      r="46"
+                      className="clear-progress-bg"
+                      strokeWidth="6"
+                      fill="none"
+                    />
+                    <circle
+                      cx="55"
+                      cy="55"
+                      r="46"
+                      className="clear-progress-fill"
+                      strokeWidth="6"
+                      fill="none"
+                      strokeDasharray={2 * Math.PI * 46}
+                      strokeDashoffset={2 * Math.PI * 46 * (1 - clearProgress / 100)}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="clear-progress-center">
+                    <span className="clear-progress-icon">✋</span>
+                    <span className="clear-progress-percent">{clearProgress}%</span>
+                    <span className="clear-progress-label">Hold 1s to Clear</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Gesture indicator chip */}
-          {handDetected && gesture !== GESTURES.NONE && clearProgress === 0 && (
-            <div className={`gesture-indicator gesture-${gesture}`}>
-              {gesture === GESTURES.DRAW && '☝️ Drawing'}
-              {gesture === GESTURES.TOOLS && '✌️ Tools Menu'}
-              {gesture === GESTURES.CLEAR && '✋ Clear (Hold 1s)'}
-              {gesture === GESTURES.SAVE && '👍 Saving...'}
-              {gesture === GESTURES.PAUSE && '✊ Paused'}
-            </div>
-          )}
+            {/* Gesture indicator chip */}
+            {handDetected && gesture !== GESTURES.NONE && clearProgress === 0 && (
+              <div className={`gesture-indicator gesture-${gesture}`}>
+                {gesture === GESTURES.DRAW && '☝️ Drawing'}
+                {gesture === GESTURES.TOOLS && '✌️ Tools Menu'}
+                {gesture === GESTURES.CLEAR && '✋ Clear (Hold 1s)'}
+                {gesture === GESTURES.SAVE && '👍 Saving...'}
+                {gesture === GESTURES.PAUSE && '✊ Paused'}
+              </div>
+            )}
 
-          {/* ✌️ Glowing Tools Cursor Dot (Index fingertip landmark 8 in TOOLS mode) */}
-          <div
-            ref={toolCursorRef}
-            className="tool-cursor-dot"
-            style={{ display: 'none' }}
-          >
-            <div className="tool-cursor-halo" />
-            <div className="tool-cursor-center" />
+            {/* ✌️ Glowing Tools Cursor Dot (Index fingertip landmark 8 in TOOLS mode) */}
+            <div
+              ref={toolCursorRef}
+              className="tool-cursor-dot"
+              style={{ display: 'none' }}
+            >
+              <div className="tool-cursor-halo" />
+              <div className="tool-cursor-center" />
+            </div>
+
+            {/* 🐛 Real-Time Vision Debug HUD Overlay (Desktop) */}
+            {showDebug && (
+              <div className="studio-debug-panel desktop-debug-hud">
+                <div className="debug-header">
+                  <span className="debug-title">VISION DEBUG</span>
+                  <span className={`debug-badge ${debugInfo.handDetected ? 'online' : 'offline'}`}>
+                    {debugInfo.handDetected ? '● Hand Detected' : '○ No Hand'}
+                  </span>
+                </div>
+                <div className="debug-stats-row">
+                  <div className="debug-stat-cell">
+                    <span className="debug-stat-label">Raw</span>
+                    <strong className="debug-stat-val">{debugInfo.rawGesture}</strong>
+                  </div>
+                  <div className="debug-stat-cell">
+                    <span className="debug-stat-label">Stable</span>
+                    <strong className="debug-stat-val">{debugInfo.stableGesture}</strong>
+                  </div>
+                  <div className="debug-stat-cell">
+                    <span className="debug-stat-label">Hold</span>
+                    <strong className="debug-stat-val">{debugInfo.holdProgress ?? clearProgress}%</strong>
+                  </div>
+                  <div className="debug-stat-cell">
+                    <span className="debug-stat-label">Cool</span>
+                    <strong className="debug-stat-val">{debugInfo.cooldownText}</strong>
+                  </div>
+                </div>
+                <div className="debug-fingers-grid">
+                  <span className={`debug-finger-chip ${debugInfo.fingers.thumb ? 'up' : 'down'}`}>
+                    Thumb {debugInfo.fingers.thumb ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.thumb || 0)}°
+                  </span>
+                  <span className={`debug-finger-chip ${debugInfo.fingers.index ? 'up' : 'down'}`}>
+                    Index {debugInfo.fingers.index ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.index || 0)}°
+                  </span>
+                  <span className={`debug-finger-chip ${debugInfo.fingers.middle ? 'up' : 'down'}`}>
+                    Mid {debugInfo.fingers.middle ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.middle || 0)}°
+                  </span>
+                  <span className={`debug-finger-chip ${debugInfo.fingers.ring ? 'up' : 'down'}`}>
+                    Ring {debugInfo.fingers.ring ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.ring || 0)}°
+                  </span>
+                  <span className={`debug-finger-chip ${debugInfo.fingers.pinky ? 'up' : 'down'}`}>
+                    Pinky {debugInfo.fingers.pinky ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.pinky || 0)}°
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <CameraView
+              ref={cameraViewRef}
+              videoRef={videoRef}
+              onCanvasResize={handleCanvasResize}
+              width={canvasSize.width}
+              height={canvasSize.height}
+            />
+            <DrawingCanvas
+              ref={drawingCanvasRef}
+              width={canvasSize.width}
+              height={canvasSize.height}
+            />
           </div>
 
-          {/* 🐛 Real-Time Vision Debug HUD Overlay */}
-          {showDebug && (
-            <div className="studio-debug-panel">
-              <div className="debug-header">
-                <span className="debug-title">VISION DEBUG</span>
-                <span className={`debug-badge ${debugInfo.handDetected ? 'online' : 'offline'}`}>
-                  {debugInfo.handDetected ? '● Hand Detected' : '○ No Hand'}
-                </span>
-              </div>
-              <div className="debug-stats-row">
-                <div className="debug-stat-cell">
-                  <span className="debug-stat-label">Raw</span>
-                  <strong className="debug-stat-val">{debugInfo.rawGesture}</strong>
-                </div>
-                <div className="debug-stat-cell">
-                  <span className="debug-stat-label">Stable</span>
-                  <strong className="debug-stat-val">{debugInfo.stableGesture}</strong>
-                </div>
-                <div className="debug-stat-cell">
-                  <span className="debug-stat-label">Hold</span>
-                  <strong className="debug-stat-val">{debugInfo.holdProgress ?? clearProgress}%</strong>
-                </div>
-                <div className="debug-stat-cell">
-                  <span className="debug-stat-label">Cool</span>
-                  <strong className="debug-stat-val">{debugInfo.cooldownText}</strong>
-                </div>
-              </div>
-              <div className="debug-fingers-grid">
-                <span className={`debug-finger-chip ${debugInfo.fingers.thumb ? 'up' : 'down'}`}>
-                  Thumb {debugInfo.fingers.thumb ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.thumb || 0)}°
-                </span>
-                <span className={`debug-finger-chip ${debugInfo.fingers.index ? 'up' : 'down'}`}>
-                  Index {debugInfo.fingers.index ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.index || 0)}°
-                </span>
-                <span className={`debug-finger-chip ${debugInfo.fingers.middle ? 'up' : 'down'}`}>
-                  Mid {debugInfo.fingers.middle ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.middle || 0)}°
-                </span>
-                <span className={`debug-finger-chip ${debugInfo.fingers.ring ? 'up' : 'down'}`}>
-                  Ring {debugInfo.fingers.ring ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.ring || 0)}°
-                </span>
-                <span className={`debug-finger-chip ${debugInfo.fingers.pinky ? 'up' : 'down'}`}>
-                  Pinky {debugInfo.fingers.pinky ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.pinky || 0)}°
-                </span>
-              </div>
-            </div>
-          )}
-
-          <CameraView
-            ref={cameraViewRef}
-            videoRef={videoRef}
-            onCanvasResize={handleCanvasResize}
-          />
-          <DrawingCanvas
-            ref={drawingCanvasRef}
-            width={canvasSize.width}
-            height={canvasSize.height}
-          />
-
-          {/* Floating Toolbar inside camera area */}
+          {/* Toolbar: Floating on desktop; Row 1 & Row 2 below camera on mobile */}
           <Toolbar
             tool={tool}
             onToolChange={setTool}
@@ -863,10 +907,94 @@ export default function DrawPage() {
             facingMode={facingMode}
             hoverInfo={toolHover}
           />
+
+          {/* Mobile collapsible panels below toolbar, closed by default */}
+          <div className="studio-mobile-collapsibles">
+            <details className="studio-collapse-item">
+              <summary className="studio-collapse-header">
+                <span>📖 Gesture Guide</span>
+                <span className="collapse-arrow">▾</span>
+              </summary>
+              <div className="studio-collapse-content">
+                <GestureGuide />
+              </div>
+            </details>
+
+            <details className="studio-collapse-item">
+              <summary className="studio-collapse-header">
+                <span>📊 Status Panel</span>
+                <span className="collapse-arrow">▾</span>
+              </summary>
+              <div className="studio-collapse-content">
+                <StatusPanel
+                  cameraStatus={cameraStatus}
+                  handDetected={handDetected}
+                  gesture={gesture}
+                  fps={fps}
+                  brushSize={brushSize}
+                  color={color}
+                  isModelLoading={isModelLoading}
+                  delegateUsed={delegateUsed}
+                />
+              </div>
+            </details>
+
+            <details className="studio-collapse-item">
+              <summary className="studio-collapse-header">
+                <span>🐛 Vision Debug HUD</span>
+                <span className="collapse-arrow">▾</span>
+              </summary>
+              <div className="studio-collapse-content">
+                <div className="mobile-debug-card">
+                  <div className="debug-header">
+                    <span className="debug-title">VISION DEBUG</span>
+                    <span className={`debug-badge ${debugInfo.handDetected ? 'online' : 'offline'}`}>
+                      {debugInfo.handDetected ? '● Hand Detected' : '○ No Hand'}
+                    </span>
+                  </div>
+                  <div className="debug-stats-row">
+                    <div className="debug-stat-cell">
+                      <span className="debug-stat-label">Raw</span>
+                      <strong className="debug-stat-val">{debugInfo.rawGesture}</strong>
+                    </div>
+                    <div className="debug-stat-cell">
+                      <span className="debug-stat-label">Stable</span>
+                      <strong className="debug-stat-val">{debugInfo.stableGesture}</strong>
+                    </div>
+                    <div className="debug-stat-cell">
+                      <span className="debug-stat-label">Hold</span>
+                      <strong className="debug-stat-val">{debugInfo.holdProgress ?? clearProgress}%</strong>
+                    </div>
+                    <div className="debug-stat-cell">
+                      <span className="debug-stat-label">Cool</span>
+                      <strong className="debug-stat-val">{debugInfo.cooldownText}</strong>
+                    </div>
+                  </div>
+                  <div className="debug-fingers-grid">
+                    <span className={`debug-finger-chip ${debugInfo.fingers.thumb ? 'up' : 'down'}`}>
+                      Thumb {debugInfo.fingers.thumb ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.thumb || 0)}°
+                    </span>
+                    <span className={`debug-finger-chip ${debugInfo.fingers.index ? 'up' : 'down'}`}>
+                      Index {debugInfo.fingers.index ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.index || 0)}°
+                    </span>
+                    <span className={`debug-finger-chip ${debugInfo.fingers.middle ? 'up' : 'down'}`}>
+                      Mid {debugInfo.fingers.middle ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.middle || 0)}°
+                    </span>
+                    <span className={`debug-finger-chip ${debugInfo.fingers.ring ? 'up' : 'down'}`}>
+                      Ring {debugInfo.fingers.ring ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.ring || 0)}°
+                    </span>
+                    <span className={`debug-finger-chip ${debugInfo.fingers.pinky ? 'up' : 'down'}`}>
+                      Pinky {debugInfo.fingers.pinky ? 'UP' : 'DN'} {Math.round(debugInfo.fingers.angles?.pinky || 0)}°
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
         </div>
 
-        {/* Side panel — right (desktop) */}
-        <aside className="side-panel right-panel">
+        {/* Side panel — right (desktop >= 1200px) */}
+        <aside className="side-panel right-panel desktop-side-panel">
           <GestureGuide />
         </aside>
       </main>

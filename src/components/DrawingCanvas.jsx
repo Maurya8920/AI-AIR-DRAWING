@@ -1,10 +1,11 @@
-import { useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { useRef, forwardRef, useImperativeHandle, useCallback, useEffect } from 'react';
 import { drawLineSegment } from '../utils/drawingUtils';
 
 /**
  * DrawingCanvas is a transparent overlay canvas for user drawings.
  * Uses imperative API (refs) for performance — no re-renders during drawing.
  *
+ * Preserves drawing content when resized (e.g. video load, window resize, orientation change).
  * Manages undo/redo via ImageData snapshots.
  */
 const DrawingCanvas = forwardRef(function DrawingCanvas(
@@ -34,6 +35,30 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
     // Clear redo when a new action is performed
     redoStackRef.current = [];
   }, [getCtx]);
+
+  // Re-sync canvas sizes without erasing the drawing
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !width || !height) return;
+    if (canvas.width === width && canvas.height === height) return;
+
+    let tempCanvas = null;
+    if (canvas.width > 0 && canvas.height > 0) {
+      tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(canvas, 0, 0);
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+
+    if (tempCanvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(tempCanvas, 0, 0, width, height);
+    }
+  }, [width, height]);
 
   useImperativeHandle(ref, () => ({
     /**
@@ -119,8 +144,8 @@ const DrawingCanvas = forwardRef(function DrawingCanvas(
     <canvas
       ref={canvasRef}
       className="drawing-canvas"
-      width={width || 1280}
-      height={height || 720}
+      width={width || 640}
+      height={height || 480}
     />
   );
 });

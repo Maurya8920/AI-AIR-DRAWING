@@ -4,9 +4,11 @@ import { drawHandLandmarks } from '../utils/drawingUtils';
 /**
  * CameraView renders the mirrored video feed and a landmark overlay canvas.
  * The landmark overlay is drawn imperatively via ref methods to avoid re-renders.
+ * Canvas internal resolution matches the video stream resolution so hand landmarks
+ * map 1:1 with high precision.
  */
 const CameraView = forwardRef(function CameraView(
-  { videoRef, onCanvasResize },
+  { videoRef, onCanvasResize, width = 640, height = 480 },
   ref
 ) {
   const overlayCanvasRef = useRef(null);
@@ -33,43 +35,33 @@ const CameraView = forwardRef(function CameraView(
     },
   }));
 
-  // Sync canvas dimensions with the video display size
+  // Sync video resolution and report to parent
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const syncSize = () => {
-      const container = containerRef.current;
-      const overlay = overlayCanvasRef.current;
-      if (!container || !overlay) return;
-
-      const rect = container.getBoundingClientRect();
-      const w = Math.floor(rect.width);
-      const h = Math.floor(rect.height);
-
-      if (overlay.width !== w || overlay.height !== h) {
-        overlay.width = w;
-        overlay.height = h;
-        if (onCanvasResize) {
-          onCanvasResize(w, h);
-        }
+    const syncVideoDimensions = () => {
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      if (vw && vh && onCanvasResize) {
+        onCanvasResize(vw, vh);
       }
     };
 
-    // Sync on video play and resize
-    video.addEventListener('playing', syncSize);
-    window.addEventListener('resize', syncSize);
+    video.addEventListener('loadedmetadata', syncVideoDimensions);
+    video.addEventListener('playing', syncVideoDimensions);
+    window.addEventListener('resize', syncVideoDimensions);
+    window.addEventListener('orientationchange', syncVideoDimensions);
 
-    // Also sync periodically in case of layout shifts
-    const interval = setInterval(syncSize, 1000);
-
-    // Initial sync
-    syncSize();
+    if (video.videoWidth && video.videoHeight) {
+      syncVideoDimensions();
+    }
 
     return () => {
-      video.removeEventListener('playing', syncSize);
-      window.removeEventListener('resize', syncSize);
-      clearInterval(interval);
+      video.removeEventListener('loadedmetadata', syncVideoDimensions);
+      video.removeEventListener('playing', syncVideoDimensions);
+      window.removeEventListener('resize', syncVideoDimensions);
+      window.removeEventListener('orientationchange', syncVideoDimensions);
     };
   }, [videoRef, onCanvasResize]);
 
@@ -82,7 +74,12 @@ const CameraView = forwardRef(function CameraView(
         playsInline
         muted
       />
-      <canvas ref={overlayCanvasRef} className="landmarks-canvas landmark-overlay" />
+      <canvas
+        ref={overlayCanvasRef}
+        className="landmarks-canvas landmark-overlay"
+        width={width}
+        height={height}
+      />
     </div>
   );
 });
