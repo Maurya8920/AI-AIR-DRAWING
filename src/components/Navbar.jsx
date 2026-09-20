@@ -87,6 +87,7 @@ export default function Navbar() {
             <div className="nav-auth-section">
               <Link
                 to="/login"
+                state={{ from: location }}
                 className={`nav-link ${isActive('/login') ? 'active' : ''}`}
                 onClick={() => setMenuOpen(false)}
               >

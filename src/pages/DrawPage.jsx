@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCamera } from '../hooks/useCamera';
 import { useHandTracking } from '../hooks/useHandTracking';
 import {
@@ -11,6 +12,7 @@ import { mediapipeToCanvas, smoothPoint } from '../utils/coordinateUtils';
 import {
   exportCanvasToOptimizedImage,
   createCanvasThumbnail,
+  exportCanvasToPNG,
   downloadDataURL,
 } from '../utils/drawingUtils';
 import { createDrawing } from '../services/api';
@@ -59,6 +61,8 @@ export default function DrawPage() {
   });
 
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Refs
   const canvasAreaRef = useRef(null);
@@ -79,10 +83,13 @@ export default function DrawPage() {
   const lastClearSeenTimeRef = useRef(0);
   const showDebugRef = useRef(false);
   const handleSaveLocalRef = useRef(null);
+  const handleSaveCloudRef = useRef(null);
+  const isAuthenticatedRef = useRef(isAuthenticated);
   const prevFingerStatesRef = useRef({});
   const lastToolsOrDrawTimeRef = useRef(0);
   const lastRingAndPinkyStrictUpTimeRef = useRef(0);
 
+  useEffect(() => { isAuthenticatedRef.current = isAuthenticated; }, [isAuthenticated]);
   useEffect(() => { showDebugRef.current = showDebug; }, [showDebug]);
 
   // Hooks
@@ -136,18 +143,26 @@ export default function DrawPage() {
   }, []);
 
   /**
-   * Handle local file save (WebP 0.8 max 1280px with JPEG fallback).
+   * Helper to download the current drawing locally as a PNG.
+   */
+  const downloadPNGLocally = useCallback(() => {
+    const canvas = drawingCanvasRef.current?.getCanvas();
+    if (!canvas) return false;
+    const dataURL = exportCanvasToPNG(canvas);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    downloadDataURL(dataURL, `air-drawing-${timestamp}.png`);
+    return true;
+  }, []);
+
+  /**
+   * Handle local PNG file download.
    */
   const handleSaveLocal = useCallback(() => {
-    const canvas = drawingCanvasRef.current?.getCanvas();
-    if (!canvas) return;
-    const dataURL = exportCanvasToOptimizedImage(canvas, { quality: 0.8, maxWidth: 1280 });
-    const isWebP = dataURL.startsWith('data:image/webp');
-    const ext = isWebP ? 'webp' : 'jpg';
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    downloadDataURL(dataURL, `air-drawing-${timestamp}.${ext}`);
-    setToast({ message: `Drawing downloaded as ${ext.toUpperCase()}!`, type: 'success' });
-  }, []);
+    const success = downloadPNGLocally();
+    if (success) {
+      setToast({ message: 'Drawing downloaded as PNG!', type: 'success' });
+    }
+  }, [downloadPNGLocally]);
 
   useEffect(() => {
     handleSaveLocalRef.current = handleSaveLocal;
@@ -155,10 +170,17 @@ export default function DrawPage() {
 
   /**
    * Handle save to cloud (backend with 320px thumbnail).
+   * If not logged in: downloads locally and prompts user to sign in with a button.
    */
   const handleSaveCloud = useCallback(async () => {
-    if (!isAuthenticated) {
-      setToast({ message: 'Please log in to save drawings to your account', type: 'error' });
+    if (!isAuthenticatedRef.current) {
+      downloadPNGLocally();
+      setToast({
+        message: 'Sign in to save drawings to your gallery',
+        type: 'info',
+        actionLabel: 'Sign In',
+        onAction: () => navigate('/login', { state: { from: location } }),
+      });
       return;
     }
     if (saving) return;
@@ -178,13 +200,17 @@ export default function DrawPage() {
         brushColor: color,
         brushSize: brushSize,
       });
-      setToast({ message: '✓ Drawing saved successfully', type: 'success' });
+      setToast({ message: '✓ Drawing saved to your gallery!', type: 'success' });
     } catch (err) {
       setToast({ message: err.message || 'Failed to save drawing', type: 'error' });
     } finally {
       setSaving(false);
     }
-  }, [isAuthenticated, saving, color, brushSize]);
+  }, [downloadPNGLocally, navigate, location, saving, color, brushSize]);
+
+  useEffect(() => {
+    handleSaveCloudRef.current = handleSaveCloud;
+  }, [handleSaveCloud]);
 
   /**
    * Handle manual clear action — pushes snapshot to undo stack first so it is undoable.
@@ -445,7 +471,7 @@ export default function DrawPage() {
         const lastSaveCooldown = gestureCooldownRef.current[GESTURES.SAVE] || 0;
         if (now - lastSaveCooldown >= 1500) {
           gestureCooldownRef.current[GESTURES.SAVE] = now;
-          handleSaveLocalRef.current?.();
+          handleSaveCloudRef.current?.();
         }
         return;
       }
@@ -640,6 +666,8 @@ export default function DrawPage() {
         <Toast
           message={toast.message}
           type={toast.type}
+          actionLabel={toast.actionLabel}
+          onAction={toast.onAction}
           onClose={() => setToast(null)}
         />
       )}

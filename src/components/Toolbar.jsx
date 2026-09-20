@@ -211,7 +211,7 @@ export default function Toolbar({
           className={`tool-btn ${hoverInfo?.id === 'save' ? 'cursor-hovered' : ''}`}
           onClick={onSave}
           data-tool-id="save"
-          title="Download WebP/PNG"
+          title="Download PNG"
         >
           <ProgressRing active={hoverInfo?.id === 'save'} progress={hoverInfo?.progress} />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

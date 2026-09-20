@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
@@ -12,6 +12,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function Register() {
     try {
       const data = await register(name, email, password);
       setSuccess(data.message || 'Account created successfully');
-      setTimeout(() => navigate('/login'), 1500);
+      setTimeout(() => navigate('/login', { state: { from: location.state?.from } }), 1500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -116,7 +117,7 @@ export default function Register() {
 
         <p className="auth-footer">
           Already have an account?{' '}
-          <Link to="/login" className="auth-link">Sign in</Link>
+          <Link to="/login" state={{ from: location.state?.from }} className="auth-link">Sign in</Link>
         </p>
       </div>
     </div>

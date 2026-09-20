@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -9,6 +9,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,7 +18,8 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      const destination = location.state?.from?.pathname || location.state?.from || '/dashboard';
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -77,7 +79,7 @@ export default function Login() {
 
         <p className="auth-footer">
           Don't have an account?{' '}
-          <Link to="/register" className="auth-link">Create one</Link>
+          <Link to="/register" state={{ from: location.state?.from }} className="auth-link">Create one</Link>
         </p>
       </div>
     </div>
